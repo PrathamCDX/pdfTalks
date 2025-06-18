@@ -56,7 +56,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Projects List */}
-      <div className="hidden md:flex-1 h-[100vh] overflow-y-auto p-4 ">
+      <div className="flex-1 h-[100vh] overflow-y-auto p-4 ">
         {!isCollapsed && (
           <>
             <div className=" flex sticky top-0 left-0 items-center justify-between mb-4  md:bg-gray-50 md:dark:bg-gray-900  z-50 border rounded-md p-3 ">

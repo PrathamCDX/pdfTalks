@@ -3,6 +3,10 @@ import { Sidebar } from "@/components/Sidebar";
 import { PDFUpload } from "@/components/PDFUpload";
 import { PDFViewer } from "@/components/PDFViewer";
 import { ChatInterface } from "@/components/ChatInterface";
+import WaitingPage from "./WaitingPage";
+import axios from "axios";
+import { useVisitorData } from "@fingerprintjs/fingerprintjs-pro-react";
+import PDFAnalysisWaitingPage from "./PDFAnalysisWaitingPage";
 
 export interface PDFProject {
   id: string;
@@ -16,104 +20,33 @@ const Index = () => {
   const [projects, setProjects] = useState<PDFProject[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [uploadingPdf, setUploadingPdf] = useState<boolean>(true);
+
+  const { isLoading, error, data } = useVisitorData();
+
   useEffect(() => {
-    setProjects([
-      {
-        id: "1",
-        title: "Sample Project",
-        fileName: "sample.pdf",
+    console.log("Projects updated:", projects);
+    if (projects.length == 0) {
+      const newProject: PDFProject = {
+        id: crypto.randomUUID(),
+        title: "New Project",
+        fileName: "",
         uploadDate: new Date(),
-        fileUrl: "https://example.com/sample.pdf",
-      },
-      {
-        id: "1",
-        title: "Sample Project",
-        fileName: "sample.pdf",
-        uploadDate: new Date(),
-        fileUrl: "https://example.com/sample.pdf",
-      },
-      {
-        id: "1",
-        title: "Sample Project",
-        fileName: "sample.pdf",
-        uploadDate: new Date(),
-        fileUrl: "https://example.com/sample.pdf",
-      },
-      {
-        id: "1",
-        title: "Sample Project",
-        fileName: "sample.pdf",
-        uploadDate: new Date(),
-        fileUrl: "https://example.com/sample.pdf",
-      },
-      {
-        id: "1",
-        title: "Sample Project",
-        fileName: "sample.pdf",
-        uploadDate: new Date(),
-        fileUrl: "https://example.com/sample.pdf",
-      },
-      {
-        id: "1",
-        title: "Sample Project",
-        fileName: "sample.pdf",
-        uploadDate: new Date(),
-        fileUrl: "https://example.com/sample.pdf",
-      },
-      {
-        id: "1",
-        title: "Sample Project",
-        fileName: "sample.pdf",
-        uploadDate: new Date(),
-        fileUrl: "https://example.com/sample.pdf",
-      },
-      {
-        id: "1",
-        title: "Sample Project",
-        fileName: "sample.pdf",
-        uploadDate: new Date(),
-        fileUrl: "https://example.com/sample.pdf",
-      },
-      {
-        id: "1",
-        title: "Sample Project",
-        fileName: "sample.pdf",
-        uploadDate: new Date(),
-        fileUrl: "https://example.com/sample.pdf",
-      },
-      {
-        id: "1",
-        title: "Sample Project",
-        fileName: "sample.pdf",
-        uploadDate: new Date(),
-        fileUrl: "https://example.com/sample.pdf",
-      },
-      {
-        id: "1",
-        title: "Sample Project",
-        fileName: "sample.pdf",
-        uploadDate: new Date(),
-        fileUrl: "https://example.com/sample.pdf",
-      },
-      {
-        id: "1",
-        title: "Sample Project",
-        fileName: "sample.pdf",
-        uploadDate: new Date(),
-        fileUrl: "https://example.com/sample.pdf",
-      },
-      {
-        id: "1",
-        title: "Sample Project",
-        fileName: "sample.pdf",
-        uploadDate: new Date(),
-        fileUrl: "https://example.com/sample.pdf",
-      },
-    ]);
-  }, []);
+      };
+      setActiveProjectId(newProject.id);
+      setProjects((prev) => [...prev, newProject]);
+    }
+  }, [projects]);
 
   const activeProject = projects.find((p) => p.id === activeProjectId);
 
+  useEffect(() => {
+    console.log("Active project ID changed:", activeProjectId);
+  }, [activeProjectId]);
+
+  // Track file to upload if a new project is being created
+
+  // Modified handleFileUpload to handle async project creation
   const handleFileUpload = (file: File) => {
     if (activeProject && !activeProject.fileUrl) {
       // Update existing project with PDF
@@ -123,12 +56,11 @@ const Index = () => {
         fileName: file.name,
         fileUrl: URL.createObjectURL(file),
       };
-
       setProjects((prev) =>
         prev.map((p) => (p.id === activeProject.id ? updatedProject : p))
       );
     } else {
-      // Create new project with PDF
+      // Create new project, but delay upload until activeProjectId is updated
       const newProject: PDFProject = {
         id: crypto.randomUUID(),
         title: file.name.replace(".pdf", ""),
@@ -136,7 +68,6 @@ const Index = () => {
         uploadDate: new Date(),
         fileUrl: URL.createObjectURL(file),
       };
-
       setProjects((prev) => [...prev, newProject]);
       setActiveProjectId(newProject.id);
     }
@@ -153,7 +84,7 @@ const Index = () => {
       fileName: "",
       uploadDate: new Date(),
     };
-
+    setUploadingPdf(true);
     setProjects((prev) => [...prev, newProject]);
     setActiveProjectId(newProject.id);
   };
@@ -169,10 +100,55 @@ const Index = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
 
+  const uploadPdf = async (
+    file: File,
+    fingerprint: string
+  ): Promise<string | null> => {
+    const formData = new FormData();
+    formData.append("activeProjectId", activeProjectId);
+    console.log("inside upload pdf function : ", activeProjectId);
+    formData.append("file", file); // must match FastAPI param name: 'file'
+    formData.append("collection_name", "test_collection3");
+    formData.append("fingerprint", fingerprint);
+    if (activeProjectId !== null) {
+      try {
+        const response = await axios.post(
+          "http://127.0.0.1:8000/upload",
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+        console.log("Uploading pdf of  the id :", activeProjectId);
+        console.log("Upload success:", response.data);
+        setUploadingPdf(false);
+        return response.data.filename;
+      } catch (error: any) {
+        console.error("Upload failed:", error);
+        return null;
+      }
+    }
+  };
+
   // Responsive: determine if screen is small (less than 768px, i.e., mobile)
   const [isMobile, setIsMobile] = React.useState(false);
+  const [serverStarted, setServerStarted] = React.useState(false);
+
+  const pingServer = async () => {
+    try {
+      const response = await axios.get("http://127.0.0.1:8000/");
+      if (response.status === 200) {
+        setServerStarted(true);
+      }
+    } catch (error) {
+      console.error("Error pinging server:", error);
+    }
+  };
 
   React.useEffect(() => {
+    pingServer(); // Check server status on mount
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
     };
@@ -182,16 +158,24 @@ const Index = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  if (!serverStarted || isLoading || error != undefined) {
+    // console.log(" loading :", isLoading);
+    // console.log("Server is not started yet, showing waiting page data: ", data);
+    return <WaitingPage />;
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 w-full transition-colors duration-200">
-      <div className="flex flex-col md:flex-row w-full min-h-screen h-[100vh] ">
+    <div className=" min-h-screen bg-gray-50 dark:bg-gray-900 w-full transition-colors duration-200">
+      <div className="flex flex-col md:flex-row w-full min-h-screen h-[100vh]">
         {/* Sidebar Panel */}
         <div
           className={`w-full md:w-auto flex-shrink-0 ${
             isMobile ? "!max-h-[64px]" : "md:max-w-xs"
-          } transition-all`}
+          } transition-all overflow-y-auto h-screen`}
           style={
-            isMobile ? { position: "sticky", top: 0, zIndex: 20 } : undefined
+            isMobile
+              ? { position: "sticky", top: 0, zIndex: 20 }
+              : { height: "100vh" }
           }
         >
           <Sidebar
@@ -218,18 +202,28 @@ const Index = () => {
                     Upload a PDF to start asking questions
                   </p>
                 </div>
-                <PDFUpload onFileUpload={handleFileUpload} />
+                <PDFUpload
+                  onFileUpload={handleFileUpload}
+                  activeProjectId={activeProjectId}
+                  uploadPdf={uploadPdf}
+                />
               </div>
             </div>
           ) : (
             // Responsive Split: stack vertically on mobile, side by side on desktop
-            <div className="flex flex-col md:flex-row w-full h-full min-h-0">
-              <div className="w-full md:w-1/2 flex-1 min-h-[240px] max-h-full overflow-y-auto">
-                <PDFViewer project={activeProject} />
-              </div>
-              <div className="w-full md:w-1/2 flex-1 min-h-[240px] max-h-full overflow-y-auto">
-                <ChatInterface project={activeProject} />
-              </div>
+            <div>
+              {uploadingPdf ? (
+                <PDFAnalysisWaitingPage />
+              ) : (
+                <div className="flex flex-col md:flex-row w-full h-full min-h-0">
+                  <div className="w-full md:w-1/2 flex-1 min-h-[240px] max-h-full overflow-y-auto">
+                    <PDFViewer project={activeProject} />
+                  </div>
+                  <div className="w-full md:w-1/2 flex-1 min-h-[240px] max-h-full overflow-y-auto">
+                    <ChatInterface project={activeProject} />
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

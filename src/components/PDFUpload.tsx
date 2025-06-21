@@ -3,22 +3,38 @@ import { Upload, FileText, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import axios from "axios";
 import { useVisitorData } from "@fingerprintjs/fingerprintjs-pro-react";
+import { set } from "date-fns";
 
 interface PDFUploadProps {
   onFileUpload: (file: File) => void;
+  activeProjectId: string | null;
+  uploadPdf: (file: File, fingerprint: string) => Promise<string | null>;
 }
 
-export const PDFUpload: React.FC<PDFUploadProps> = ({ onFileUpload }) => {
+export const PDFUpload: React.FC<PDFUploadProps> = ({
+  onFileUpload,
+  activeProjectId,
+  uploadPdf,
+}) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pdfFile, setPdfFile] = useState<any>(null);
+  const [uploadPendingFile, setUploadPendingFile] = useState<boolean>(false);
 
   const data = useVisitorData();
 
   useEffect(() => {
-    console.log("PDF File:", pdfFile);
-    console.log("pdf upload fingerprint :  ", data);
-  }, [pdfFile, data]);
+    console.log(data?.data?.visitorId);
+    if (activeProjectId == null) {
+      console.log("No active project selected use effect pdf upload");
+    } else {
+      setUploadPendingFile(true);
+      console.log(
+        "pdf upload changes use effect pdf upload : ",
+        activeProjectId
+      );
+    }
+  }, [activeProjectId, data]);
 
   const validateFile = (file: File): boolean => {
     if (file.type !== "application/pdf") {
@@ -69,37 +85,15 @@ export const PDFUpload: React.FC<PDFUploadProps> = ({ onFileUpload }) => {
       });
       onFileUpload(file);
       console.log("uploaded:  ");
-      await uploadPdf(file);
+      if (uploadPendingFile) {
+        await uploadPdf(file, data?.data?.visitorId);
+      }
       console.log("File selected:", file);
     }
   };
 
-  const uploadPdf = async (file: File): Promise<string | null> => {
-    const formData = new FormData();
-    formData.append("file", file); // must match FastAPI param name: 'file'
-    formData.append("collection_name", "test_collection3");
-
-    try {
-      const response = await axios.post(
-        "http://127.0.0.1:8000/upload",
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      console.log("Upload success:", response.data);
-      return response.data.filename;
-    } catch (error: any) {
-      console.error("Upload failed:", error);
-      return null;
-    }
-  };
-
   return (
-    <div className="w-full">
+    <div className="w-full ">
       <div
         onDrop={handleDrop}
         onDragOver={handleDragOver}

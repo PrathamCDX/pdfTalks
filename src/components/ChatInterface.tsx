@@ -3,6 +3,7 @@ import { Send, MessageCircle, Bot, User } from "lucide-react";
 import { PDFProject } from "@/pages/Index";
 import axios from "axios";
 import { useVisitorData } from "@fingerprintjs/fingerprintjs-pro-react";
+import { stringify } from "querystring";
 
 interface Message {
   id: string;
@@ -14,25 +15,6 @@ interface Message {
 interface ChatInterfaceProps {
   project: PDFProject;
 }
-
-// Demo Q&A data
-// const demoQuestionsAndAnswers = [
-//   {
-//     question: "What is the main topic of this document?",
-//     answer:
-//       "Based on the PDF content, this document appears to discuss key concepts and methodologies. The main focus seems to be on providing comprehensive information about the subject matter presented in the uploaded file.",
-//   },
-//   {
-//     question: "Can you summarize the key points?",
-//     answer:
-//       "Here are the key points from the document:\n\n1. Primary concepts and definitions\n2. Methodology and approach\n3. Key findings and insights\n4. Conclusions and recommendations\n\nThe document provides a structured overview of the topic with detailed explanations and supporting evidence.",
-//   },
-//   {
-//     question: "What are the conclusions?",
-//     answer:
-//       "The document concludes with several important insights:\n\n• The methodology presented shows promising results\n• Further research is recommended in specific areas\n• The findings support the initial hypothesis\n• Practical applications are discussed for real-world implementation",
-//   },
-// ];
 
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({ project }) => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -47,14 +29,23 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ project }) => {
 
   const getResponse = async (
     question: string,
-    collection_name?: string,
+    collection_name: string,
     limit?: number
   ) => {
-    const response = await axios.post("/getanswer", {
+    const response = await axios.post(" http://127.0.0.1:8000/getanswer", {
       question,
       collection_name,
       limit,
     });
+    const botMessage: Message = {
+      id: crypto.randomUUID(),
+      type: "bot",
+      content: response.data.answer,
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, botMessage]);
+    setIsLoading(false);
 
     console.log("get answer response  : ", response.data);
   };
@@ -68,7 +59,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ project }) => {
       content: inputValue,
       timestamp: new Date(),
     };
-    getResponse(inputValue);
+    getResponse(inputValue, project.id);
     setMessages((prev) => [...prev, userMessage]);
     setInputValue("");
     setIsLoading(true);

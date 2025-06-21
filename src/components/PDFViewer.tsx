@@ -1,7 +1,6 @@
-
-import React, { useState } from 'react';
-import { FileText, Download, ZoomIn, ZoomOut } from 'lucide-react';
-import { PDFProject } from '@/pages/Index';
+import React, { useState } from "react";
+import { FileText, Download, ZoomIn, ZoomOut } from "lucide-react";
+import { PDFProject } from "@/pages/Index";
 
 interface PDFViewerProps {
   project: PDFProject;
@@ -10,6 +9,7 @@ interface PDFViewerProps {
 export const PDFViewer: React.FC<PDFViewerProps> = ({ project }) => {
   // --- Added state to control zoom level ---
   const [zoom, setZoom] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Clamp values for min/max zoom
   const minZoom = 0.5;
@@ -30,7 +30,9 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({ project }) => {
               <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate text-base sm:text-lg">
                 {project.title}
               </h3>
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">{project.fileName}</p>
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
+                {project.fileName}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2 mt-2 sm:mt-0">
@@ -45,7 +47,10 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({ project }) => {
               <ZoomOut className="w-4 h-4 text-gray-600 dark:text-gray-400" />
             </button>
             {/* --- Zoom Level Display --- */}
-            <span className="px-2 text-sm font-medium text-gray-700 dark:text-gray-200 min-w-[48px] text-center select-none" title="Zoom Level">
+            <span
+              className="px-2 text-sm font-medium text-gray-700 dark:text-gray-200 min-w-[48px] text-center select-none"
+              title="Zoom Level"
+            >
               {(zoom * 100).toFixed(0)}%
             </span>
             {/* --- Zoom In --- */}
@@ -88,21 +93,21 @@ export const PDFViewer: React.FC<PDFViewerProps> = ({ project }) => {
             <div className="w-full h-full flex justify-center items-center overflow-auto">
               <div
                 className="w-full h-full flex items-center justify-center"
-                style={{ minHeight: '300px' }}
+                style={{ minHeight: "300px" }}
               >
                 <iframe
                   src={project.fileUrl}
                   className="bg-white dark:bg-gray-950"
                   title={`PDF Viewer - ${project.title}`}
                   style={{
-                    minHeight: '300px',
-                    border: 'none',
+                    minHeight: "300px",
+                    border: "none",
                     width: `${zoom * 100}%`,
                     height: `${zoom * 65}vh`,
                     transform: `scale(${zoom})`,
-                    transformOrigin: 'top center',
-                    transition: 'transform 0.2s, width 0.2s, height 0.2s',
-                    boxShadow: '0 0 0 0 transparent'
+                    transformOrigin: "top center",
+                    transition: "transform 0.2s, width 0.2s, height 0.2s",
+                    boxShadow: "0 0 0 0 transparent",
                   }}
                 />
               </div>

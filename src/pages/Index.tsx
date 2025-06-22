@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { PDFUpload } from "@/components/PDFUpload";
 import { PDFViewer } from "@/components/PDFViewer";
@@ -7,6 +7,9 @@ import WaitingPage from "./WaitingPage";
 import axios from "axios";
 import PDFAnalysisWaitingPage from "./PDFAnalysisWaitingPage";
 import { set } from "date-fns";
+import { authContext } from "@/App";
+import { Navigate, useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
 
 export interface PDFProject {
   id: string;
@@ -17,6 +20,9 @@ export interface PDFProject {
 }
 
 const Index = () => {
+  const navigate = useNavigate();
+  const { googleAuth, setGoogleAuth } = useContext(authContext) || {};
+
   const [isMobile, setIsMobile] = React.useState(false);
   const [serverStarted, setServerStarted] = React.useState(false);
   const [projects, setProjects] = useState<PDFProject[]>([]);
@@ -25,11 +31,20 @@ const Index = () => {
   const [uploadingPdf, setUploadingPdf] = useState<boolean>(false);
 
   useEffect(() => {
+    if (googleAuth === undefined || googleAuth === null || googleAuth === "") {
+      console.log("Google Auth is not set, redirecting to login page");
+      navigate("/");
+    }
+  }, [googleAuth]);
+
+  useEffect(() => {
     const fetchProjects = async () => {
       try {
         const formData = new FormData();
 
-        // Major fixes needed here:
+        const decoded = jwtDecode(googleAuth);
+        console.log((decoded as any).email);
+        formData.append("googleAuth", (decoded as any).email || "");
         if (true) {
           const url: string = import.meta.env.VITE_BACKEND_URL;
           const response = await axios.post(`${url}/getprojects`, formData);
@@ -51,7 +66,7 @@ const Index = () => {
     };
 
     fetchProjects();
-  }, []);
+  }, [googleAuth]);
 
   useEffect(() => {
     console.log("Projects updated:", projects);
@@ -142,8 +157,11 @@ const Index = () => {
     const formData = new FormData();
     formData.append("activeProjectId", activeProjectId);
     console.log("inside upload pdf function : ", activeProjectId);
-    formData.append("file", file); // must match FastAPI param name: 'file'
+    formData.append("file", file);
     formData.append("collection_name", "test_collection3");
+    const decoded = jwtDecode(googleAuth);
+    console.log((decoded as any).email);
+    formData.append("googleAuth", (decoded as any).email || ""); // Ensure googleAuth is set
     if (activeProjectId !== null) {
       try {
         const url: string = import.meta.env.VITE_BACKEND_URL;

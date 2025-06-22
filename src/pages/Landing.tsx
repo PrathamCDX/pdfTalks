@@ -1,9 +1,12 @@
-import React from "react";
+import React, { useContext } from "react";
 import { Button } from "@/components/ui/button";
 import { FileText, MessageCircle, Zap, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { GoogleLogin } from "@react-oauth/google";
+import { authContext } from "@/App";
 
 const Landing = () => {
+  const { googleAuth, setGoogleAuth } = useContext(authContext) || {};
   const navigate = useNavigate();
 
   const handleGoogleAuth = () => {
@@ -44,12 +47,19 @@ const Landing = () => {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
-              <Button
-                size="lg"
-                onClick={handleGoogleAuth}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg font-semibold min-w-[200px]"
-              >
-                Sign in with Google
+              <Button size="lg">
+                <GoogleLogin
+                  onSuccess={(credentialResponse) => {
+                    setGoogleAuth(credentialResponse.credential);
+                    console.log(credentialResponse);
+                    navigate("/app");
+                  }}
+                  onError={() => {
+                    setGoogleAuth("");
+                    console.log("Login Failed");
+                  }}
+                  useOneTap
+                />
               </Button>
             </div>
 

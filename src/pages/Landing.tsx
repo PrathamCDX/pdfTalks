@@ -6,12 +6,8 @@ import { useNavigate } from "react-router-dom";
 const Landing = () => {
   const navigate = useNavigate();
 
-  const handleGetStarted = () => {
-    // Navigate to the main app for now - you can replace this with Google auth later
-    navigate("/app");
-  };
-
   const handleGoogleAuth = () => {
+    navigate("/app");
     console.log("Google auth clicked - implement later");
   };
 

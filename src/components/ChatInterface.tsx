@@ -2,8 +2,6 @@ import React, { useEffect, useState } from "react";
 import { Send, MessageCircle, Bot, User } from "lucide-react";
 import { PDFProject } from "@/pages/Index";
 import axios from "axios";
-import { useVisitorData } from "@fingerprintjs/fingerprintjs-pro-react";
-import { stringify } from "querystring";
 
 interface Message {
   id: string;
@@ -21,18 +19,51 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ project }) => {
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const { data } = useVisitorData();
+  useEffect(() => {
+    getChats(project.id);
+  }, [project]);
 
   useEffect(() => {
-    console.log(" chat interface fingerprint :  ", data);
-  }, [data]);
+    if (messages?.length > 0) {
+      updateChats(project.id, messages);
+    }
+  }, [messages]);
+
+  const updateChats = async (projectId: string, messages: Message[]) => {
+    try {
+      const formData = new FormData();
+      formData.append("id", projectId);
+      formData.append("chats", JSON.stringify(messages));
+      const url: string = import.meta.env.VITE_BACKEND_URL;
+      const response = await axios.post(`${url}/updatechat`, formData);
+    } catch (error) {
+      console.error("Error updating chats:", error);
+    }
+  };
+
+  const getChats = async (projectId: string) => {
+    try {
+      const formData = new FormData();
+      formData.append("id", projectId);
+
+      const url: string = import.meta.env.VITE_BACKEND_URL;
+      const response = await axios.post(`${url}/getchat`, formData);
+
+      setMessages(response.data[0].chats);
+      console.log("get chat resp :   ", response.data[0].chats);
+    } catch (error) {
+      console.error("Error fetching chats:", error);
+      setMessages([]);
+    }
+  };
 
   const getResponse = async (
     question: string,
     collection_name: string,
     limit?: number
   ) => {
-    const response = await axios.post(" http://127.0.0.1:8000/getanswer", {
+    const url: string = import.meta.env.VITE_BACKEND_URL;
+    const response = await axios.post(`${url}/getanswer`, {
       question,
       collection_name,
       limit,
@@ -74,10 +105,6 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ project }) => {
     }
   };
 
-  const handleQuickQuestion = (question: string) => {
-    setInputValue(question);
-  };
-
   return (
     <div className="h-[100vh] border border-gray-200 dark:border-gray-700 border-t-0 flex flex-col bg-white dark:bg-gray-900 transition-colors">
       {/* Header */}
@@ -97,7 +124,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ project }) => {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white dark:bg-gray-900 transition-colors">
-        {messages.length === 0 ? (
+        {messages?.length === 0 ? (
           <div className="text-center py-12">
             <Bot className="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-gray-700" />
             <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
@@ -112,22 +139,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ project }) => {
               <p className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-3">
                 Try these questions:
               </p>
-              {/* {demoQuestionsAndAnswers.map((demo, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleQuickQuestion(demo.question)}
-                  className="w-full text-left p-3 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm border border-gray-200 dark:border-gray-700 rounded-lg transition-colors"
-                >
-                  <span className="text-gray-900 dark:text-gray-100">
-                    {demo.question}
-                  </span>
-                </button>
-              ))} */}
             </div>
           </div>
         ) : (
           <>
-            {messages.map((message) => (
+            {messages?.map((message) => (
               <div
                 key={message.id}
                 className={`flex gap-3 ${
@@ -155,7 +171,18 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ project }) => {
                     <p className="whitespace-pre-wrap">{message.content}</p>
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {message.timestamp.toLocaleTimeString()}
+                    {(() => {
+                      if (!message.timestamp) return null;
+                      // If timestamp is a string, convert to Date
+                      const dateObj =
+                        typeof message.timestamp === "string"
+                          ? new Date(message.timestamp)
+                          : message.timestamp;
+                      return dateObj instanceof Date &&
+                        !isNaN(dateObj.getTime())
+                        ? dateObj.toLocaleTimeString()
+                        : null;
+                    })()}
                   </p>
                 </div>
 

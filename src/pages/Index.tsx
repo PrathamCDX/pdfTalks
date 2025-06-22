@@ -5,8 +5,8 @@ import { PDFViewer } from "@/components/PDFViewer";
 import { ChatInterface } from "@/components/ChatInterface";
 import WaitingPage from "./WaitingPage";
 import axios from "axios";
-import { useVisitorData } from "@fingerprintjs/fingerprintjs-pro-react";
 import PDFAnalysisWaitingPage from "./PDFAnalysisWaitingPage";
+import { set } from "date-fns";
 
 export interface PDFProject {
   id: string;
@@ -17,12 +17,41 @@ export interface PDFProject {
 }
 
 const Index = () => {
+  const [isMobile, setIsMobile] = React.useState(false);
+  const [serverStarted, setServerStarted] = React.useState(false);
   const [projects, setProjects] = useState<PDFProject[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [uploadingPdf, setUploadingPdf] = useState<boolean>(true);
+  const [uploadingPdf, setUploadingPdf] = useState<boolean>(false);
 
-  const { isLoading, error, data } = useVisitorData();
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const formData = new FormData();
+
+        // Major fixes needed here:
+        if (true) {
+          const url: string = import.meta.env.VITE_BACKEND_URL;
+          const response = await axios.post(`${url}/getprojects`, formData);
+          // setProjects((prev) => [...prev, ...response.data]);
+          setProjects(response.data);
+          const newProject: PDFProject = {
+            id: crypto.randomUUID(),
+            title: "New Project",
+            fileName: "",
+            uploadDate: new Date(),
+          };
+          setActiveProjectId(newProject.id);
+          setProjects((prev) => [...prev, newProject]);
+          console.log("Fetched projects:", response);
+        }
+      } catch (error) {
+        console.error("Error fetching projects:", error);
+      }
+    };
+
+    fetchProjects();
+  }, []);
 
   useEffect(() => {
     console.log("Projects updated:", projects);
@@ -35,6 +64,10 @@ const Index = () => {
       };
       setActiveProjectId(newProject.id);
       setProjects((prev) => [...prev, newProject]);
+    } else {
+      if (projects.find((p) => p.id === activeProjectId) === undefined) {
+        setActiveProjectId(projects[0].id);
+      }
     }
   }, [projects]);
 
@@ -90,9 +123,14 @@ const Index = () => {
   };
 
   const handleDeleteProject = (projectId: string) => {
+    // if(projects[0].id === projectId && ){
+
+    // }
     setProjects((prev) => prev.filter((p) => p.id !== projectId));
-    if (activeProjectId === projectId) {
-      setActiveProjectId(null);
+    if (activeProjectId === projectId || true) {
+      if (projects.length > 0) {
+        setActiveProjectId(projects[0].id);
+      }
     }
   };
 
@@ -100,27 +138,20 @@ const Index = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
 
-  const uploadPdf = async (
-    file: File,
-    fingerprint: string
-  ): Promise<string | null> => {
+  const uploadPdf = async (file: File): Promise<string | null> => {
     const formData = new FormData();
     formData.append("activeProjectId", activeProjectId);
     console.log("inside upload pdf function : ", activeProjectId);
     formData.append("file", file); // must match FastAPI param name: 'file'
     formData.append("collection_name", "test_collection3");
-    formData.append("fingerprint", fingerprint);
     if (activeProjectId !== null) {
       try {
-        const response = await axios.post(
-          "http://127.0.0.1:8000/upload",
-          formData,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
-          }
-        );
+        const url: string = import.meta.env.VITE_BACKEND_URL;
+        const response = await axios.post(`${url}/upload`, formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
         console.log("Uploading pdf of  the id :", activeProjectId);
         console.log("Upload success:", response.data);
         setUploadingPdf(false);
@@ -133,12 +164,11 @@ const Index = () => {
   };
 
   // Responsive: determine if screen is small (less than 768px, i.e., mobile)
-  const [isMobile, setIsMobile] = React.useState(false);
-  const [serverStarted, setServerStarted] = React.useState(false);
 
   const pingServer = async () => {
     try {
-      const response = await axios.get("http://127.0.0.1:8000/");
+      const url: string = import.meta.env.VITE_BACKEND_URL;
+      const response = await axios.get(`${url}/`);
       if (response.status === 200) {
         setServerStarted(true);
       }
@@ -158,7 +188,7 @@ const Index = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  if (!serverStarted || isLoading || error != undefined) {
+  if (!serverStarted) {
     // console.log(" loading :", isLoading);
     // console.log("Server is not started yet, showing waiting page data: ", data);
     return <WaitingPage />;

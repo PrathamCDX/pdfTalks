@@ -2,13 +2,12 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Upload, FileText, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import axios from "axios";
-import { useVisitorData } from "@fingerprintjs/fingerprintjs-pro-react";
 import { set } from "date-fns";
 
 interface PDFUploadProps {
   onFileUpload: (file: File) => void;
   activeProjectId: string | null;
-  uploadPdf: (file: File, fingerprint: string) => Promise<string | null>;
+  uploadPdf: (file: File) => Promise<string | null>;
 }
 
 export const PDFUpload: React.FC<PDFUploadProps> = ({
@@ -21,10 +20,7 @@ export const PDFUpload: React.FC<PDFUploadProps> = ({
   const [pdfFile, setPdfFile] = useState<any>(null);
   const [uploadPendingFile, setUploadPendingFile] = useState<boolean>(false);
 
-  const data = useVisitorData();
-
   useEffect(() => {
-    console.log(data?.data?.visitorId);
     if (activeProjectId == null) {
       console.log("No active project selected use effect pdf upload");
     } else {
@@ -34,7 +30,7 @@ export const PDFUpload: React.FC<PDFUploadProps> = ({
         activeProjectId
       );
     }
-  }, [activeProjectId, data]);
+  }, [activeProjectId]);
 
   const validateFile = (file: File): boolean => {
     if (file.type !== "application/pdf") {
@@ -86,7 +82,7 @@ export const PDFUpload: React.FC<PDFUploadProps> = ({
       onFileUpload(file);
       console.log("uploaded:  ");
       if (uploadPendingFile) {
-        await uploadPdf(file, data?.data?.visitorId);
+        await uploadPdf(file);
       }
       console.log("File selected:", file);
     }

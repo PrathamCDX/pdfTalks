@@ -10,6 +10,7 @@ import {
   FpjsProvider,
   FingerprintJSPro,
 } from "@fingerprintjs/fingerprintjs-pro-react";
+import Landing from "./pages/Landing";
 
 const queryClient = new QueryClient();
 
@@ -26,7 +27,8 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<Index />} />
+              <Route path="/" element={<Landing />} />
+              <Route path="/app" element={<Index />} />
 
               <Route path="*" element={<NotFound />} />
             </Routes>

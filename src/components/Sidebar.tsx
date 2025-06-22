@@ -114,7 +114,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             {project.title}
                           </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {project.uploadDate.toLocaleDateString()}
+                            {(() => {
+                              if (!project.uploadDate) return null;
+                              const dateObj =
+                                typeof project.uploadDate === "string"
+                                  ? new Date(project.uploadDate)
+                                  : project.uploadDate;
+                              return dateObj instanceof Date &&
+                                !isNaN(dateObj.getTime())
+                                ? dateObj.toLocaleDateString()
+                                : null;
+                            })()}
                           </div>
                         </div>
                       </div>
